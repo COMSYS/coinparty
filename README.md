@@ -17,9 +17,9 @@ In this repository, we publish a prototypic implementation of CoinParty.
 However, the prototype is just a **proof-of-concept** implementation and **not suitable** for productive utilization!
 
 
-[1]: J. H. Ziegeldorf, F. Grossmann, M. Henze, N. Inden, and K. Wehrle. CoinParty: Secure Multi-Party Mixing of Bitcoins. Proc. CODASPY'15. URL: https://www.comsys.rwth-aachen.de/fileadmin/papers/2015/2015-ziegeldorf-codaspy-coinparty.pdf
-[2]: J. H. Ziegeldorf, R. Matzutt, M. Henze, F. Grossmann, and K. Wehrle. Secure and anonymous decentralized Bitcoin mixing. Future Generation Computer Systems. URL: http://www.sciencedirect.com/science/article/pii/S0167739X16301297.
-[3]: F. Reid and M. Harrigan. An Analysis of Anonymity in the Bitcoin System. URL: https://arxiv.org/pdf/1107.4524.pdf.
+* [1]: J. H. Ziegeldorf, F. Grossmann, M. Henze, N. Inden, and K. Wehrle. CoinParty: Secure Multi-Party Mixing of Bitcoins. Proc. CODASPY'15. URL: https://www.comsys.rwth-aachen.de/fileadmin/papers/2015/2015-ziegeldorf-codaspy-coinparty.pdf
+* [2]: J. H. Ziegeldorf, R. Matzutt, M. Henze, F. Grossmann, and K. Wehrle. Secure and anonymous decentralized Bitcoin mixing. Future Generation Computer Systems. URL: http://www.sciencedirect.com/science/article/pii/S0167739X16301297.
+* [3]: F. Reid and M. Harrigan. An Analysis of Anonymity in the Bitcoin System. URL: https://arxiv.org/pdf/1107.4524.pdf.
 
 ## DISCLAIMER
 
@@ -32,6 +32,8 @@ It is likely that your bitcoins will be lost!
 The intention of releasing this code is to create a basis for the Bitcoin community to create a complete, reviewed, and robust implementation.
 
 ## Installation
+
+First, please read the disclaimer.
 
 This install guide is written for Ubuntu Linux.
 
