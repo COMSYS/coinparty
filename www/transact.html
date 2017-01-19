@@ -1,0 +1,210 @@
+<!--CoinParty - Transaction Page
+    Web page including necessary JavaScript to send user information to
+    mixpeers.
+
+    Copyright (C) 2016 Roman Matzutt, Henrik Ziegeldorf
+
+    This file is part of CoinParty.
+
+    CoinParty is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CoinParty is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CoinParty.  If not, see <http://www.gnu.org/licenses/>.-->
+
+
+<html>
+    <head>
+        <title>CoinParty Mixing Peer</title>
+        <link rel="stylesheet" type="text/css" href="/style/style.css" />
+        <script type="text/javascript">
+            var time = #cp_time#;
+            var phase = #cp_phase#;
+        </script>
+        <script src="/inc/biginteger.js" type="text/javascript"></script>
+        <script src="/inc/bitcore.js" type="text/javascript"></script>
+        <script src="/inc/coinparty.js" type="text/javascript"></script>
+        <script type="text/javascript">
+
+            var peer_addresses = #cp_peeraddrs#;
+            var n = #cp_n#;
+            var t = #cp_t#;
+            var mixnet_id = "#cp_mixnet#";
+            var session_id = "#cp_sid#";
+            var escrow = "#cp_escrow#";
+            var value = #cp_value#;
+            var value_feeless = "#cp_feeless#";
+
+            /* When secret-sharing hashs (arbitrary 256-bit values), bitcoin_order may
+               not be used, since it is too small to fit each possible hash value.
+               Thus, we use the prime (2^265)-49, which is sufficiently large.
+               Prime derived from http://primes.utm.edu/lists/2small/200bit.html */
+            var mod = BigInteger.parse("0x1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffcf");
+            var bitcore = typeof(bitcore) === 'undefined' ? require('bitcore') : bitcore;
+            var Buffer = bitcore.Buffer;
+            var Random = bitcore.SecureRandom;
+
+            function getRandBigInt() {
+                var rand = BigInteger.parse(Random.getRandomBuffer(32).toString("hex"), 16);
+                // FIXME: This is not a perfectly random distribution! (first 4294967296 numbers are slightly more likely)
+                if (rand.compare(mod) != -1) {
+                    rand.subtract(mod);
+                }
+                return rand;
+            }
+
+            function getShamirPolynomial(secret) {
+                coeffs = [BigInteger(secret)];
+                for (i = 0; i < t; i++) {
+                    coeffs.push(getRandBigInt());
+                }
+                return coeffs;
+            }
+
+            function getShamirShare(coeffs, i) {
+                /* Obtain Shamir shares using the horner scheme.
+                 * Example: coeffs = [4711, 3, 7]
+                 * => f(x) = 4711 + 3x + 7x^2 = (7x + 3)x + 4711
+                 */
+                console.log('coeffs: ' + coeffs);
+                var share = coeffs[coeffs.length - 1];
+                for (j = 1; j < coeffs.length; j++) {
+                    share = share.multiply(i);
+                    share = share.add(coeffs[coeffs.length - 1 - j]);
+                    while (share.compare(mod) != -1) {
+                        share = share.subtract(mod);
+                    }
+                }
+                return share;
+            }
+
+            function sendHashShares(peer_address, secret, nonce, share) {
+                return apiRequest(peer_address, '?msg=share&mixnet=' + mixnet_id + '&secret=' + secret + '&nonce=' + nonce + '&sid=' + session_id + '&share=' + share);
+            }
+
+            window.onload = function() {
+                var secret = localStorage.getItem("pin");
+                var key_nonce;
+                var nonce;
+                var share;
+
+                document.getElementById("pin").value = secret;
+
+                updatePhaseMeter();
+                updateRemainingTime(); /* Immediately display time. */
+                window.setInterval(updateRemainingTime, 1000);
+
+                var output_hashs_string = localStorage.getItem("output_hash");
+                output_hashs = output_hashs_string.split(",");
+                cs = [[]];
+                for (j = 0; j < output_hashs.length; j++) {
+                    coeff = getShamirPolynomial(output_hashs[j]);
+                    cs[j] = coeff;
+                    console.log('' + j + '/'+ coeff.length + '/' + t + ': ' + coeff);
+                }
+                console.log('Coeffs: ' + cs.length);
+                for (i = 0; i < n; i++) {
+                    key_nonce = "nonce" + i;
+                    nonce = localStorage.getItem(key_nonce);
+                    shares = [];
+                    for (k = 0; k < cs.length; k++) {
+                        shares[k] = (getShamirShare(cs[k], i + 1).toString());
+                        console.log('Share (' + i + ',' + k + '): ' + shares[k]);
+                    }
+
+                    s = shares.join();
+                    response = sendHashShares(peer_addresses[i], secret, nonce, s);
+                    localStorage.removeItem(key_nonce);
+                }
+                localStorage.removeItem("output_hash");
+
+                var objects = document.getElementById('reports').children[0].children;
+                verifySession(objects, peer_addresses, session_id, escrow, value_feeless);
+                localStorage.removeItem("pin");
+
+            }
+        </script>
+    </head>
+
+    <body>
+        <div id="head">
+            <h1>CoinParty Mixing Peer</h1>
+
+            <p>
+                <a href="/">Index</a> | <a href="https://#cp_host#/mp/#cp_id#">Check me on CoinParty.org</a>
+            </p>
+            <p>
+                My ID: <span class="hash">#cp_id#</span>
+            </p>
+        </div>
+
+        <div class="body">
+            <h2>Output Address Sent</h2>
+            <p class="text">
+                Your encrypted output address has been sent to the mixing network.
+                In the following, you can see the escrow address assigned to you.
+            </p>
+
+            <p class="text">
+                Please transfer the stated value as soon as possible to your assigned
+                escrow address in order to participate in the mixing operation.
+            </p>
+        </div>
+        <div class="body">
+
+            <h3>Operation Progress</h3>
+
+            <p class="text">
+                The <span style="font-variant:small-caps"><b>Newish</b></span> phase bar
+                serves as an indicator of how far your Bitcoins are from being
+                like new in terms of their provided privacy level.
+                It shows the mixing phase the mixnet is currently in.
+            </p>
+
+            <p class="text">
+                In case of an error, you can see the phase the error occurred in
+                and whether you have to take action or not.
+            </p>
+
+            <div id="phasebar">
+                <div><span></span></div><div><span></span></div><div><span></span></div><div><span></span></div><div><span></span></div><div><span></span></div>
+            </div>
+
+            <p class="text">#cp_phasestr#</p>
+        </div>
+        <div class="body">
+            <h3>Escrow Details</h3>
+            <form>
+                <p>
+                    <label for="sid">Session ID:</label><input type="input" class="long readable" name="sid" value="#cp_sid#" readOnly /><br />
+                    <label for="pin">Your PIN:</label><input type="input" class="readable" name="pin" id="pin" value="" readOnly /><br />
+                    <label for="esc">Escrow address:</label><input type="input" class="readable" name="esc" value="#cp_escrow#" readOnly /><br />
+                    <label for="val">Bitcoin value:</label><input type="input" class="readable" name="val" value="#cp_value#" readOnly /><br />
+                    <label for="win">Closing earliest:</label><input type="input" class="readable" name="win" id="win" value="#cp_timestr#" readOnly /><br />
+                </p>
+            </form>
+        </div>
+        <div class="body">
+
+            <h3>Peer Reports</h3>
+            <p class="text">
+                The following reports of the other mixing peers verify that I have
+                not fooled you.
+                If you do not trust me that I forward the reports correctly,
+                feel free to contact the mixing peers directly and verify your
+                session manually.
+            </p>
+
+            <div id="reports">
+            #cp_report#
+            </div>
+        </div>
+    </body>
+</html>

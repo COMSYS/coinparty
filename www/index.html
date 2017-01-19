@@ -1,0 +1,77 @@
+<!--CoinParty - Index Page
+    Index page for the mixpeers' web frontend.
+
+    Copyright (C) 2016 Roman Matzutt, Henrik Ziegeldorf
+
+    This file is part of CoinParty.
+
+    CoinParty is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CoinParty is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CoinParty.  If not, see <http://www.gnu.org/licenses/>.-->
+
+
+<html>
+    <head>
+        <title>CoinParty Mixing Peer</title>
+        <link rel="stylesheet" type="text/css" href="/style/style.css" />
+    </head>
+
+    <body>
+        <div id="head">
+            <h1>CoinParty Mixing Peer</h1>
+
+            <p>
+                <a href="/">Index</a> | <a href="https://#cp_host#/mp/#cp_id#">Check me on CoinParty.org</a>
+            </p>
+            <p>
+                My ID: <span class="hash">#cp_id#</span>
+            </p>
+        </div>
+
+        <div class="body">
+            <h2>Welcome to CoinParty</h2>
+
+            <p class="text">
+                I am a CoinParty mixing peer.
+                CoinParty is a distributed and secure Bitcoin mixing service.
+                It's purpose is to enhance your financial privacy as everyone
+                who can link your identity to one of your used Bitcoin addresses
+                is potentially able to follow your transactions in the block chain.
+            </p>
+            <p class="text">
+                I am part of one or more peer-to-peer mixing networks of independent mixing
+                peers.
+                We shuffle a fresh Bitcoin address chosen by you with fresh
+                addresses of other users such that you are indistinguishable from
+                them after using our service.
+            </p>
+            <h2>Select Mixnet</h2>
+
+            <p>
+                #cp_mixnets#
+            </p>
+
+
+            <h2>Verify Past Session</h2>
+
+            #cp_verifylist#
+
+            <form action="/verify" method="post">
+                <p>
+                    <label for="sid">Check a session ID:</label>
+                    <input type="text" id="sid" name="sid" value="" />
+                    <input type="submit" value="Check" />
+                </p>
+            </form>
+        </div>
+    </body>
+</html>

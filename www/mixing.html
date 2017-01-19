@@ -1,0 +1,187 @@
+<!--CoinParty - Mixing Page
+    Web page including necessary JavaScript to provide users the form required
+    to be filled out in order to participate in a mixing operation.
+
+    Copyright (C) 2016 Roman Matzutt, Henrik Ziegeldorf
+
+    This file is part of CoinParty.
+
+    CoinParty is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CoinParty is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CoinParty.  If not, see <http://www.gnu.org/licenses/>.-->
+
+
+<html>
+    <head>
+        <title>CoinParty Mixing Peer</title>
+        <link rel="stylesheet" type="text/css" href="/style/style.css" />
+        <script src="/inc/bitcore.js" type="text/javascript"></script>
+        <script src="/inc/coinparty.js" type="text/javascript"></script>
+        <script type="text/javascript">
+            var pubkeys = #cp_pubkeys#;
+            var peer_addresses = #cp_peeraddrs#;
+            var mixnet_id = "#cp_mixnet#";
+
+            var bitcore = require('bitcore');
+            var WalletKey = bitcore.WalletKey;
+            var Buffer = bitcore.Buffer;
+            var networks = bitcore.networks;
+            var Random = bitcore.SecureRandom;
+
+            var pin;
+
+            function sendHmac(peer_address, hmac) {
+                console.log('Sending request to mixnet ' + mixnet_id);
+                return apiRequest(peer_address, '?msg=hmac&mixnet=' + mixnet_id + '&hmac=' + hmac);
+            }
+
+            function obtainPin() {
+                var pin;
+
+                /* Keep PIN if already in local storage */
+                pin = localStorage.getItem("pin");
+                if (typeof(pin) == 'undefined' || pin == null) {
+                    var used_chars = [
+                        'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
+                        'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
+                        '0','1','2','3','4','5','6','7','8','9'
+                    ];
+                    pin = '';
+                    var pinrnd = Random.getRandomBuffer(6);
+                    // FIXME: This is not a perfectly random distribution
+                    for (i = 0; i < 6; i++) {
+                        pin += used_chars[pinrnd[i] % used_chars.length];
+                    }
+                }
+                var pin_input = document.getElementById("pin");
+                pin_input.appendChild(document.createTextNode(pin));
+
+                return pin;
+            }
+
+            function obtainNonce() {
+                return Random.getRandomBuffer(32).toString("hex");
+            }
+
+            function prepareSendHashShare() {
+                var key_nonce;
+                var nonce;
+                var hmac;
+
+                for (i = 0; i < peer_addresses.length; i++) {
+                    key_nonce = "nonce" + i;
+                    nonce = obtainNonce();
+                    console.log("Nonce: " + nonce);
+                    console.log("pin: " + pin);
+                    hmac = bitcore.util.sha256hmac(Buffer(nonce), Buffer(pin)).toString('hex');
+                    localStorage.setItem(key_nonce, nonce);
+                    response = sendHmac(peer_addresses[i], hmac);
+                }
+            }
+
+            function encryptOutput() {
+
+                // Disable input form elements
+                var input_field = document.getElementById("output");
+                var output_address = input_field.value;
+                console.log(output_address);
+                prepareSendHashShare();
+
+                input_field.readOnly = true;
+                document.getElementById("submit").disabled = true;
+                var priv_field = document.getElementById("priv_key");
+                if (priv_field != null) priv_field.disabled = true; /* Disabling the element prevents the mixing peer from seeing anything. */
+
+                var crypt_buffer = new Buffer(output_address, "binary");
+                bitcore.Key.generateSync();
+
+                var pubkey = null;
+                var output_hashs = ["0x" + bitcore.util.sha256(crypt_buffer).toString("hex")];
+                for (var i = pubkeys.length - 1; i >= 0; i--) {
+                    pubkey = new Buffer(pubkeys[i], "hex");
+                    crypt_buffer = bitcore.ECIES.encryptForPyelliptic(pubkey, crypt_buffer);
+                    if (i > 0) {
+                        output_hash = "0x" + bitcore.util.sha256(crypt_buffer).toString("hex");
+                        output_hashs.unshift(output_hash);
+                    }
+                }
+                output_hashs_string = output_hashs.join();
+                localStorage.setItem("output_hash", output_hashs_string);
+                input_field.value = crypt_buffer.toString("hex");
+                return true;
+            }
+
+            function generateOutputAddress() {
+                /* Generation of extended form, the content of which is NOT
+                   transmitted to the mixing peer. */
+                var paragraph = document.getElementById("gen_p");
+                var gen_button = document.getElementById("gen");
+                document.getElementById("gen").disabled = true;
+
+                paragraph.removeChild(gen_button);
+                paragraph.innerHTML = "<label for=\"priv_key\">Private key:</label><input type=\"text\" name=\"priv_key\" id=\"priv_key\" readonly=\"\"/>";
+                priv_field = document.getElementById("priv_key");
+                priv_field.classList.add("readable");
+                priv_field.classList.add("long");
+
+                document.getElementById("output").readOnly = true;
+
+                /* Key generation */
+                var wk = new WalletKey({network: networks.testnet});
+                wk.generate();
+                var wkObj = wk.storeObj();
+                priv_field.value = wkObj.priv;
+                document.getElementById("output").value = wkObj.addr;
+            }
+
+            window.onload = function() {
+                pin = obtainPin();
+                localStorage.setItem("pin", pin);
+            }
+        </script>
+    </head>
+
+    <body>
+        <div id="head">
+            <h1>CoinParty Mixing Peer</h1>
+
+            <p>
+                <a href="/">Index</a> | <a href="https://#cp_host#/mp/#cp_id#">Check me on CoinParty.org</a>
+            </p>
+            <p>
+                My ID: <span class="hash">#cp_id#</span>
+            </p>
+        </div>
+
+        <div class="body">
+
+            <h2>Output Address Registration</h2>
+
+            <form id="mainform" action="/mix/#cp_mixnet#" method="post" onsubmit="return encryptOutput()">
+                <p>
+                    <label for="output">Output Address:</label><input class="readable" type="text" id="output" name="output" />
+                    <i><a style="font-size:0.7em" href="/mix_man/#cp_mixnet#">I don't trust this...</a></i>
+                </p>
+                <p id="gen_p">
+                    <label></label><input type="button" id="gen" name="gen" onclick="return generateOutputAddress()" value="Generate Output Address" />
+                </p>
+                <p>
+                    <label>PIN:</label><span class="pin" id="pin"></span>
+                </p>
+                <p>
+                    <label></label><input type="submit" id="submit" value="Get escrow address" />
+                </p>
+            </form>
+
+        </div>
+    </body>
+</html>
