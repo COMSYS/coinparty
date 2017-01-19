@@ -14,7 +14,7 @@ To overcome this, we designed and prototypically implemented CoinParty as a _dis
 By using secure multiparty computation (SMC), we can distribute the intermediate control over bitoins to be mixed among multiple independent peers and thereby guarantee correct mixing even if up to (but excluding) one third of the peers are malicious.
 
 In this repository, we publish a prototypic implementation of CoinParty.
-However, the prototype is just a *proof-of-concept* implementation and *not suitable* for productive utilization!
+However, the prototype is just a **proof-of-concept** implementation and **not suitable** for productive utilization!
 
 
 [1]: J. H. Ziegeldorf, F. Grossmann, M. Henze, N. Inden, and K. Wehrle. CoinParty: Secure Multi-Party Mixing of Bitcoins. Proc. CODASPY'15. URL: https://www.comsys.rwth-aachen.de/fileadmin/papers/2015/2015-ziegeldorf-codaspy-coinparty.pdf
@@ -23,10 +23,11 @@ However, the prototype is just a *proof-of-concept* implementation and *not suit
 
 ## DISCLAIMER
 
-This is just a *proof-of-concept* prototype and it is not suitable for production use.
+This is just a **proof-of-concept** prototype and it is not suitable for production use.
 The code is not sufficiently reviewed and probably insecure.
-*DO NOT USE FOR MIXING BITCOINS.*
 It is likely that your bitcoins will be lost!
+
+**DO NOT USE FOR MIXING BITCOINS.**
 
 The intention of releasing this code is to create a basis for the Bitcoin community to create a complete, reviewed, and robust implementation.
 
